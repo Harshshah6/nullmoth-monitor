@@ -1,5 +1,11 @@
 # NullMoth Monitor
 
+<img src="Support/AppIcon.png" width="88" alt="NullMoth Monitor icon">
+
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Platform: macOS 14+](https://img.shields.io/badge/macOS-14%2B-black.svg)
+
 A native, read-only macOS menu bar monitor for Hackintosh systems running the
 [NullMoth NVIDIA driver](https://github.com/nullmoth/nvidia-macos-driver).
 
@@ -10,6 +16,8 @@ or NVRAM.
 
 > Not affiliated with NullMoth. This project contains no driver code, kexts,
 > firmware, or Apple binaries, and is licensed separately under MIT.
+
+**Status:** `0.1.0` — read-only, tested on macOS 26.7.3 with an NVIDIA RTX 3060.
 
 ## Features
 
@@ -38,6 +46,7 @@ or NVRAM.
 make build          # debug/release build of the CLI and app
 make test           # unit tests
 make app            # bundle "build/NullMoth Monitor.app"
+make icon           # regenerate the app icon from Scripts/GenerateIcon.swift
 open "build/NullMoth Monitor.app"
 ```
 
@@ -121,8 +130,22 @@ Sources/NullMothCore/          probes, models, and report generation
 Sources/NullMothMonitorCLI/    nullmoth-mon
 Sources/NullMothMonitorApp/    menu bar app (AppKit + SwiftUI)
 Tests/NullMothCoreTests/       parser and report tests
+Scripts/GenerateIcon.swift     deterministic icon renderer
+Scripts/make-icon.sh           PNG → .icns
 Support/Info.plist             app bundle metadata
+Support/AppIcon.png            icon source (1024×1024)
+Support/AppIcon.icns           bundled icon
+.github/workflows/             CI and tag-release workflows
 ```
+
+## Documentation
+
+- [Handoff notes](HANDOFF.md) — project state, hardware validation, roadmap.
+- [Agent guide](AGENTS.md) — instructions for AI coding agents.
+- [Contributing](CONTRIBUTING.md) — setup, tests, and pull-request checklist.
+- [Publishing](PUBLISHING.md) — GitHub setup, CI, and release steps.
+- [Security policy](SECURITY.md) — reporting and design guarantees.
+- [Changelog](CHANGELOG.md) — release history.
 
 ## License
 

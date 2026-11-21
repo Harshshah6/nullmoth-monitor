@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: macos-15
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Build app bundle
+        run: make app
+
+      - name: Stamp version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" \
+            "build/NullMoth Monitor.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" \
+            "build/NullMoth Monitor.app/Contents/Info.plist"
+          codesign --force --sign - "build/NullMoth Monitor.app"
+
+      - name: Package
+        run: |
+          ditto -c -k --keepParent "build/NullMoth Monitor.app" \
+            "NullMothMonitor-${GITHUB_REF_NAME}.zip"
+          shasum -a 256 "NullMothMonitor-${GITHUB_REF_NAME}.zip" \
+            > "NullMothMonitor-${GITHUB_REF_NAME}.zip.sha256"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "NullMothMonitor-${GITHUB_REF_NAME}.zip" \
+            "NullMothMonitor-${GITHUB_REF_NAME}.zip.sha256" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

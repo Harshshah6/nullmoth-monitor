@@ -3,7 +3,7 @@ BUNDLE   := build/$(APP_NAME).app
 CONFIG   ?= release
 PREFIX   ?= /usr/local
 
-.PHONY: build test app run install uninstall clean
+.PHONY: build test icon app run install uninstall clean
 
 build:
 	swift build -c $(CONFIG)
@@ -11,11 +11,16 @@ build:
 test:
 	swift test
 
+icon:
+	swift Scripts/GenerateIcon.swift
+	./Scripts/make-icon.sh
+
 app: build
 	rm -rf "$(BUNDLE)"
 	mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Resources"
 	cp ".build/$(CONFIG)/NullMothMonitor" "$(BUNDLE)/Contents/MacOS/NullMothMonitor"
 	cp Support/Info.plist "$(BUNDLE)/Contents/Info.plist"
+	@if [ -f Support/AppIcon.icns ]; then cp Support/AppIcon.icns "$(BUNDLE)/Contents/Resources/AppIcon.icns"; fi
 	printf 'APPL????' > "$(BUNDLE)/Contents/PkgInfo"
 	codesign --force --sign - "$(BUNDLE)" >/dev/null 2>&1 || true
 	@echo "Built $(BUNDLE)"

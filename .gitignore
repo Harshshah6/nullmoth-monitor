@@ -11,3 +11,10 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Generated icon intermediate
+*.iconset/
+
+# Release artifacts
+NullMothMonitor-*.zip
+NullMothMonitor-*.zip.sha256
