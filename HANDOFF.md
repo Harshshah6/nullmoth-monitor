@@ -362,10 +362,14 @@ Then confirm:
 Use `git log --oneline` for the authoritative list. At handoff time:
 
 ```
+b2c6f6a Add app icon, CI workflows, and publishing docs
 7a5b394 Show fan RPM when available and add pause control
 dbce470 Polish driver checks and menu bar sampling
 3b77d8e Add NullMoth Monitor menu bar app and CLI
 ```
+
+A local annotated tag `v0.1.0` points at `b2c6f6a`. Push it only when you are
+ready for the release workflow to run.
 
 ## 12. License boundaries
 
