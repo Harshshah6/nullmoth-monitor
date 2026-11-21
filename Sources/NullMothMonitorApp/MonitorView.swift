@@ -39,7 +39,7 @@ private struct HeaderView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "gpu")
+            Image(systemName: "memorychip")
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 36, height: 36)

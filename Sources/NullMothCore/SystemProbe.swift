@@ -39,6 +39,7 @@ public enum SystemProbe {
             return nil
         }
         return String(cString: buffer)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func readVRAMFromSystemProfiler() -> UInt64? {

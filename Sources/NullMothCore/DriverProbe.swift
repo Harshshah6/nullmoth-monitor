@@ -10,11 +10,12 @@ public enum DriverProbe {
     private static let requiredBootArguments = [
         "nvfb=1",
         "nvaccel=1",
-        "nvfbheads=4",
-        "-nvkmsnosmooth",
+    ]
+    /// Any one of these satisfies the AMFI bypass requirement.
+    private static let amfiBypassArguments = [
         "amfi_get_out_of_my_way=0x1",
         "amfi=0x80",
-        "ipc_control_port_options=0",
+        "-amfipassbeta",
     ]
     private static let forbiddenBootArguments = [
         "nv_disable=1",
@@ -52,10 +53,14 @@ public enum DriverProbe {
         _ bootArguments: String
     ) -> (missing: [String], forbidden: [String]) {
         let tokens = Set(bootArguments.split(whereSeparator: \.isWhitespace).map(String.init))
-        return (
-            requiredBootArguments.filter { !tokens.contains($0) },
-            forbiddenBootArguments.filter { tokens.contains($0) }
-        )
+        var missing = requiredBootArguments.filter { !tokens.contains($0) }
+
+        if !amfiBypassArguments.contains(where: { tokens.contains($0) }) {
+            missing.append("AMFI bypass (\(amfiBypassArguments.joined(separator: ", ")))")
+        }
+
+        let forbidden = forbiddenBootArguments.filter { tokens.contains($0) }
+        return (missing, forbidden)
     }
 
     private static func pluginVersion() -> String? {

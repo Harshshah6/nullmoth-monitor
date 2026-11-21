@@ -14,42 +14,48 @@ final class DriverProbeTests: XCTestCase {
         XCTAssertTrue(diagnostics.forbidden.isEmpty)
     }
 
-    func testDetectsMissingArguments() {
+    func testDetectsMissingEnableArguments() {
+        let diagnostics = DriverProbe.bootArgumentDiagnostics("-amfipassbeta")
+        XCTAssertEqual(diagnostics.missing, ["nvfb=1", "nvaccel=1"])
+    }
+
+    func testDetectsMissingAMFIBypass() {
         let diagnostics = DriverProbe.bootArgumentDiagnostics("nvfb=1 nvaccel=1")
-        XCTAssertEqual(
-            diagnostics.missing,
-            [
-                "nvfbheads=4",
-                "-nvkmsnosmooth",
-                "amfi_get_out_of_my_way=0x1",
-                "amfi=0x80",
-                "ipc_control_port_options=0",
-            ]
-        )
+        XCTAssertEqual(diagnostics.missing.count, 1)
+        XCTAssertTrue(diagnostics.missing[0].hasPrefix("AMFI bypass"))
+    }
+
+    func testAnyAMFIBypassArgumentIsAccepted() {
+        for bypass in ["amfi_get_out_of_my_way=0x1", "amfi=0x80", "-amfipassbeta"] {
+            let diagnostics = DriverProbe.bootArgumentDiagnostics("nvfb=1 nvaccel=1 \(bypass)")
+            XCTAssertTrue(diagnostics.missing.isEmpty, "\(bypass) should satisfy AMFI check")
+        }
     }
 
     func testDetectsForbiddenArguments() {
-        let diagnostics = DriverProbe.bootArgumentDiagnostics("nvfb=1 nv_disable=1 -wegnoegpu")
+        let diagnostics = DriverProbe.bootArgumentDiagnostics(
+            "nvfb=1 nvaccel=1 -amfipassbeta nv_disable=1 -wegnoegpu"
+        )
         XCTAssertEqual(diagnostics.forbidden, ["nv_disable=1", "-wegnoegpu"])
     }
 
     func testDoesNotMatchSubstrings() {
-        let diagnostics = DriverProbe.bootArgumentDiagnostics("nvfb=10 nvaccel=10")
+        let diagnostics = DriverProbe.bootArgumentDiagnostics(
+            "nvfb=10 nvaccel=10 -amfipassbeta"
+        )
         XCTAssertTrue(diagnostics.missing.contains("nvfb=1"))
         XCTAssertTrue(diagnostics.missing.contains("nvaccel=1"))
     }
 
     func testIgnoresExtraWhitespace() {
-        let padded = "  nvfb=1   nvaccel=1\nnvfbheads=4  "
+        let padded = "  nvfb=1   nvaccel=1\n-amfipassbeta  "
         let diagnostics = DriverProbe.bootArgumentDiagnostics(padded)
-        XCTAssertFalse(diagnostics.missing.contains("nvfb=1"))
-        XCTAssertFalse(diagnostics.missing.contains("nvaccel=1"))
-        XCTAssertFalse(diagnostics.missing.contains("nvfbheads=4"))
+        XCTAssertTrue(diagnostics.missing.isEmpty)
     }
 
     func testEmptyBootArgumentsReportEverythingMissing() {
         let diagnostics = DriverProbe.bootArgumentDiagnostics("")
-        XCTAssertEqual(diagnostics.missing.count, 7)
+        XCTAssertEqual(diagnostics.missing.count, 3)
         XCTAssertTrue(diagnostics.forbidden.isEmpty)
     }
 
