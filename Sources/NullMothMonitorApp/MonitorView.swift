@@ -11,6 +11,9 @@ struct MonitorView: View {
                 if let snapshot = store.snapshot {
                     HeaderView(gpu: snapshot.gpu, system: snapshot.system)
                     GPUCard(gpu: snapshot.gpu, history: store.history)
+                    if !snapshot.fans.isEmpty {
+                        FansCard(fans: snapshot.fans)
+                    }
                     DisplaysCard(displays: snapshot.displays)
                     AudioCard(audio: snapshot.audio)
                     DriverCard(driver: snapshot.driver)
@@ -170,6 +173,31 @@ private struct GPUCard: View {
                 MiniStat(title: "Encode", value: percent(gpu.videoEncodeUtilization))
                 MiniStat(title: "Decode", value: percent(gpu.videoDecodeUtilization))
                 MiniStat(title: "Metal", value: gpu.metalFamily ?? "—")
+            }
+        }
+    }
+}
+
+private struct FansCard: View {
+    let fans: [FanInfo]
+
+    var body: some View {
+        Card("Fans") {
+            ForEach(fans) { fan in
+                HStack(spacing: 8) {
+                    Image(systemName: "fanblades")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18)
+
+                    Text("Fan \(fan.index)")
+                        .font(.callout.weight(.medium))
+
+                    Spacer()
+
+                    Text(String(format: "%.0f rpm", fan.rpm))
+                        .font(.caption.weight(.medium))
+                        .monospacedDigit()
+                }
             }
         }
     }
@@ -336,11 +364,19 @@ private struct FooterView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text("Updated \(relative(snapshot.timestamp))")
+            Text(store.isPaused ? "Paused" : "Updated \(relative(snapshot.timestamp))")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
             Spacer()
+
+            Button {
+                store.isPaused.toggle()
+            } label: {
+                Image(systemName: store.isPaused ? "play.fill" : "pause.fill")
+            }
+            .buttonStyle(.plain)
+            .help(store.isPaused ? "Resume sampling" : "Pause sampling")
 
             Button {
                 store.refresh(force: true)

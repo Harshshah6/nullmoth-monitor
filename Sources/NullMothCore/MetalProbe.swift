@@ -18,6 +18,7 @@ enum MetalProbe {
         }
 
         let family: String?
+        #if compiler(>=6.2)
         if #available(macOS 26.0, *), device.supportsFamily(.metal4) {
             family = "Metal 4"
         } else if device.supportsFamily(.metal3) {
@@ -25,6 +26,13 @@ enum MetalProbe {
         } else {
             family = nil
         }
+        #else
+        if device.supportsFamily(.metal3) {
+            family = "Metal 3"
+        } else {
+            family = nil
+        }
+        #endif
 
         let workingSet = device.recommendedMaxWorkingSetSize
 
