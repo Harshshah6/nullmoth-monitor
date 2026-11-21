@@ -135,17 +135,19 @@ Scripts/make-icon.sh           PNG → .icns
 Support/Info.plist             app bundle metadata
 Support/AppIcon.png            icon source (1024×1024)
 Support/AppIcon.icns           bundled icon
+docs/                          handoff, publishing, changelog, docs index
 .github/workflows/             CI and tag-release workflows
 ```
 
 ## Documentation
 
-- [Handoff notes](HANDOFF.md) — project state, hardware validation, roadmap.
+- [Documentation index](docs/README.md) — all guides in one place.
+- [Handoff notes](docs/HANDOFF.md) — project state, hardware validation, roadmap.
+- [Publishing](docs/PUBLISHING.md) — GitHub setup, CI, and release steps.
+- [Changelog](docs/CHANGELOG.md) — release history.
 - [Agent guide](AGENTS.md) — instructions for AI coding agents.
 - [Contributing](CONTRIBUTING.md) — setup, tests, and pull-request checklist.
-- [Publishing](PUBLISHING.md) — GitHub setup, CI, and release steps.
 - [Security policy](SECURITY.md) — reporting and design guarantees.
-- [Changelog](CHANGELOG.md) — release history.
 
 ## License
 

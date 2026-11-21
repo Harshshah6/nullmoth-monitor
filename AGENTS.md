@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository.
 
 ## Start here
 
-1. Read [`HANDOFF.md`](HANDOFF.md) for project state, hardware notes, and the roadmap.
+1. Read [`docs/HANDOFF.md`](docs/HANDOFF.md) for project state, hardware notes, and the roadmap.
 2. Run `swift test` before changing code.
 3. Keep every change read-only and local.
 
@@ -106,5 +106,5 @@ probes; the app samples on a background queue.
 
 ## Handoff
 
-See [`HANDOFF.md`](HANDOFF.md) for current status, validation results, roadmap,
+See [`docs/HANDOFF.md`](docs/HANDOFF.md) for current status, validation results, roadmap,
 and publishing steps.

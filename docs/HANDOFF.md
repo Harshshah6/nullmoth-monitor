@@ -32,7 +32,8 @@ diagnostics.
 - 31 unit tests for parsers, boot-argument checks, and report output.
 - App icon generated from `Scripts/GenerateIcon.swift` and bundled as `.icns`.
 - CI and tag-release GitHub Actions workflows.
-- README, CONTRIBUTING, SECURITY, CHANGELOG, issue/PR templates, `.editorconfig`.
+- README, CONTRIBUTING, SECURITY, issue/PR templates, `.editorconfig`.
+- `docs/` with handoff notes, publishing steps, a changelog, and an index.
 - Git repository initialized with an initial history.
 
 ### Verified on real hardware
@@ -373,7 +374,7 @@ when you are ready for the release workflow to run.
 
 ## 12. License boundaries
 
-- This repository: MIT. See [LICENSE](LICENSE).
+- This repository: MIT. See [LICENSE](../LICENSE).
 - NullMoth driver, kexts, Metal plugin, and packaging: PolyForm Noncommercial
   1.0.0 and other upstream licenses. They are **not** included here.
 - Do not copy driver source, binaries, firmware, or assets into this repo.
