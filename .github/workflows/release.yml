@@ -16,6 +16,13 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
+      - name: Select newest Xcode
+        run: |
+          newest="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort | tail -1)"
+          if [ -n "$newest" ]; then
+            sudo xcode-select -s "$newest"
+          fi
+
       - name: Show toolchain
         run: swift --version
 
