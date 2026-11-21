@@ -9,6 +9,11 @@ struct MetalInfo {
 }
 
 enum MetalProbe {
+    /// `MTLGPUFamily.metal4` only exists in the macOS 26 SDK. The raw value is
+    /// part of the Metal ABI, so build against older SDKs and still detect
+    /// Metal 4 at runtime on a newer OS.
+    private static let metal4Family = MTLGPUFamily(rawValue: 5002)
+
     static func info() -> MetalInfo? {
         let devices = MTLCopyAllDevices()
         guard let device = devices.first(where: {
@@ -17,22 +22,17 @@ enum MetalProbe {
             return nil
         }
 
-        let family: String?
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *), device.supportsFamily(.metal4) {
-            family = "Metal 4"
-        } else if device.supportsFamily(.metal3) {
-            family = "Metal 3"
+        let supportsMetal4: Bool
+        if #available(macOS 26.0, *), let metal4 = metal4Family {
+            supportsMetal4 = device.supportsFamily(metal4)
         } else {
-            family = nil
+            supportsMetal4 = false
         }
-        #else
-        if device.supportsFamily(.metal3) {
-            family = "Metal 3"
-        } else {
-            family = nil
-        }
-        #endif
+
+        let family = familyName(
+            supportsMetal4: supportsMetal4,
+            supportsMetal3: device.supportsFamily(.metal3)
+        )
 
         let workingSet = device.recommendedMaxWorkingSetSize
 
@@ -42,6 +42,13 @@ enum MetalProbe {
             supportsRaytracing: device.supportsRaytracing,
             recommendedMaxWorkingSetBytes: workingSet > 0 ? workingSet : nil
         )
+    }
+
+    /// Map the supported families to the label shown in the app and report.
+    static func familyName(supportsMetal4: Bool, supportsMetal3: Bool) -> String? {
+        if supportsMetal4 { return "Metal 4" }
+        if supportsMetal3 { return "Metal 3" }
+        return nil
     }
 
     /// The Metal name reported through the NullMoth translator looks like

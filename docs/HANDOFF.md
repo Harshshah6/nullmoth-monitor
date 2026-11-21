@@ -19,7 +19,7 @@ diagnostics.
 - Repository: <https://github.com/Harshshah6/nullmoth-monitor>
 - License: MIT (the driver remains under its own PolyForm Noncommercial license)
 - Bundle identifier: `io.github.nullmothmonitor.app`
-- Current version: `0.1.1`
+- Current version: `0.1.2`
 
 ## 2. Current status
 
@@ -29,7 +29,7 @@ diagnostics.
 - Read-only probes: GPU, Metal, displays, audio, driver, system, SMC fans.
 - Menu bar app with popover, sparkline, pause/refresh/copy-report controls.
 - CLI modes: summary, `--json`, `--report`, `--watch`, `--help`.
-- 31 unit tests for parsers, boot-argument checks, and report output.
+- 34 unit tests for parsers, boot-argument checks, and report output.
 - App icon generated from `Scripts/GenerateIcon.swift` and bundled as `.icns`.
 - CI and tag-release GitHub Actions workflows.
 - Universal release build (`make app-universal`) with `lipo` and CI checks for
@@ -93,8 +93,9 @@ Requirements:
 
 - macOS 14 or later to run. macOS 14–26 are supported.
 - Xcode command line tools with Swift 5.9 or later to build.
-- Xcode 26 or later is recommended for release builds so Metal 4 detection is
-  compiled in. Older SDKs still build; they simply report Metal 3 at most.
+- Any Xcode that can build the package. Metal 4 is detected at runtime through
+  the `MTLGPUFamily` raw value, so an older SDK still reports Metal 4 when the
+  binary runs on macOS 26.
 - The NullMoth driver is required for live GPU data, but not for building or
   testing.
 
@@ -196,7 +197,8 @@ Timer (1 Hz, main)
 Metal:
 
 - `MTLCopyAllDevices()` → first device whose name contains `NVIDIA`
-- `supportsFamily(.metal4/.metal3)` for the family label
+- `supportsFamily` with the Metal 4 raw value (`5002`) and `.metal3` for the
+  family label
 - `supportsRaytracing`
 - `recommendedMaxWorkingSetSize`
 
@@ -267,8 +269,9 @@ VRAM total:
 - The Metal device name is decorated by the translator, e.g.
   `NVMTL over NVIDIA GeForce RTX 3060 (NVK GA106-A)`. `MetalProbe.cleanedName`
   strips the decoration.
-- `.metal4` is compiled only with Swift 6.2+ (`#if compiler(>=6.2)`), so CI on
-  older Xcode reports Metal 3 at most. Release builds should use Xcode 26+.
+- Metal 4 is detected at runtime through `MTLGPUFamily(rawValue: 5002)` because
+  the `.metal4` case only exists in the macOS 26 SDK. Older SDKs still build and
+  newer OSes still report Metal 4.
 - The driver writes log lines to stderr. JSON on stdout stays clean; always
   redirect stderr when scripting.
 - Fan RPM depends entirely on the SMC. An empty result is normal and is not a
@@ -287,7 +290,7 @@ VRAM total:
   `make app-universal`, which cross-compiles both slices and combines them with
   `lipo`. CI and the release workflow verify `x86_64 arm64`.
 - `v0.1.0` shipped arm64-only and is broken on Intel. `v0.1.1` is the universal
-  fix.
+  fix; `v0.1.2` adds runtime Metal 4 detection.
 
 ## 8. Roadmap
 
@@ -297,7 +300,8 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
 
 - [x] Push to GitHub and confirm CI is green.
 - [x] Tag `v0.1.0` and verify the release workflow (arm64-only; superseded).
-- [ ] Tag `v0.1.1` and verify the universal release.
+- [x] Tag `v0.1.1` and verify the universal release.
+- [ ] Tag `v0.1.2` with runtime Metal 4 detection.
 - [ ] Add a screenshot or short GIF to the README.
 - [ ] Add repository topics and description.
 
@@ -341,7 +345,7 @@ See [PUBLISHING.md](PUBLISHING.md) for exact commands. Summary:
 1. Create `OWNER/nullmoth-monitor` on GitHub.
 2. Push the default branch (`master` in this repository).
 3. Confirm the CI workflow passes.
-4. Tag `v0.1.1`; the release workflow builds a universal app, verifies both
+4. Tag `v0.1.2`; the release workflow builds a universal app, verifies both
    architectures, and attaches the app zip, universal CLI, and SHA-256 file.
 5. Add a repository description and topics:
    `hackintosh`, `nvidia`, `macos`, `swift`, `menubar`, `gpu-monitor`.
@@ -377,22 +381,14 @@ Then confirm:
 
 ## 11. Recent commits
 
-Use `git log --oneline` for the authoritative list. At handoff time:
-
-```
-b2c6f6a Add app icon, CI workflows, and publishing docs
-7a5b394 Show fan RPM when available and add pause control
-dbce470 Polish driver checks and menu bar sampling
-3b77d8e Add NullMoth Monitor menu bar app and CLI
-```
-
-A local annotated tag `v0.1.1` should point at the release commit. Push it only
-when you are ready for the release workflow to run.
+Use `git log --oneline` for the authoritative list; releases are summarized in
+[CHANGELOG.md](CHANGELOG.md).
 
 Published tags:
 
 - `v0.1.0` — initial release; arm64-only, broken on Intel.
 - `v0.1.1` — universal build fix.
+- `v0.1.2` — runtime Metal 4 detection.
 
 ## 12. License boundaries
 

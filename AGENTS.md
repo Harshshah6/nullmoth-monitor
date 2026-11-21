@@ -35,7 +35,7 @@ update, rollback, and log upload.
 
 ```sh
 swift build                 # debug build
-swift test                  # 31 tests, no driver required
+swift test                  # 34 tests, no driver required
 make app                    # release .app for this Mac's architecture
 make app-universal          # release .app for x86_64 + arm64 (use for releases)
 make run                    # build + open
@@ -91,7 +91,8 @@ probes; the app samples on a background queue.
 - The driver writes logs to stderr; never let that leak into JSON stdout.
 - Fan sensors are often absent on desktop boards; an empty Fans section is normal.
 - Metal reports `NVMTL over ... (NVK ...)`; use `MetalProbe.cleanedName`.
-- `.metal4` is behind `#if compiler(>=6.2)` so older SDKs still build.
+- Metal 4 is detected at runtime through the `MTLGPUFamily` raw value `5002`,
+  so older SDKs still build and newer OSes still report Metal 4.
 - `system_profiler` is slow; it is cached after the first read.
 - Boot arguments vary; only require `nvfb=1`, `nvaccel=1`, and one AMFI bypass.
 - The app is `LSUIElement` (menu bar only) and ad-hoc signed.

@@ -17,7 +17,7 @@ or NVRAM.
 > Not affiliated with NullMoth. This project contains no driver code, kexts,
 > firmware, or Apple binaries, and is licensed separately under MIT.
 
-**Status:** `0.1.1` — read-only, universal (`x86_64` + `arm64`), tested on
+**Status:** `0.1.2` — read-only, universal (`x86_64` + `arm64`), tested on
 macOS 26.7.3 with an NVIDIA RTX 3060.
 
 ## Features

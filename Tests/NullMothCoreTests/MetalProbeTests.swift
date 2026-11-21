@@ -23,4 +23,22 @@ final class MetalProbeTests: XCTestCase {
     func testFallsBackWhenNameBecomesEmpty() {
         XCTAssertEqual(MetalProbe.cleanedName(" over "), " over ")
     }
+
+    func testFamilyPrefersMetal4() {
+        XCTAssertEqual(
+            MetalProbe.familyName(supportsMetal4: true, supportsMetal3: true),
+            "Metal 4"
+        )
+    }
+
+    func testFamilyFallsBackToMetal3() {
+        XCTAssertEqual(
+            MetalProbe.familyName(supportsMetal4: false, supportsMetal3: true),
+            "Metal 3"
+        )
+    }
+
+    func testFamilyIsNilWithoutMetal3() {
+        XCTAssertNil(MetalProbe.familyName(supportsMetal4: false, supportsMetal3: false))
+    }
 }

@@ -28,7 +28,8 @@ make app-universal    # both architectures, for release checks
 open "build/NullMoth Monitor.app"
 ```
 
-Xcode 26+ is recommended for release builds so Metal 4 detection is compiled in.
+Xcode 26+ is recommended for local release builds, but not required: Metal 4 is
+detected at runtime through the `MTLGPUFamily` raw value.
 
 ## Testing
 
