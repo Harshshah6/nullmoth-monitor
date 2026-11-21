@@ -4,10 +4,18 @@ import Foundation
 import NullMothCore
 
 final class MonitorStore: ObservableObject {
+    enum PanelTab: String, CaseIterable, Identifiable {
+        case monitor = "Monitor"
+        case control = "Control"
+
+        var id: String { rawValue }
+    }
+
     @Published private(set) var snapshot: MonitorSnapshot?
     @Published private(set) var history: [GPUSample] = []
     @Published private(set) var lastError: String?
     @Published var isPaused = false
+    @Published var selectedTab: PanelTab = .monitor
 
     var onUpdate: (() -> Void)?
 

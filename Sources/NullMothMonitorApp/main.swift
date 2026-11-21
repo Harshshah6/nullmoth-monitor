@@ -20,17 +20,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 390, height: 620)
+        popover.contentSize = NSSize(width: 420, height: 640)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(
-            rootView: MonitorView(store: store)
+            rootView: RootView(store: store)
         )
 
         store.onUpdate = { [weak self] in
             self?.updateStatusItem()
         }
         store.start()
+
+        // Debug aid: `NullMothMonitor --show-control` opens the popover on the
+        // control panel tab, which makes screenshots and UI checks easier.
+        if CommandLine.arguments.contains("--show-control") {
+            store.selectedTab = .control
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.showPopover()
+            }
+        } else if CommandLine.arguments.contains("--show-monitor") {
+            store.selectedTab = .monitor
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.showPopover()
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -58,12 +72,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func showPopover() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func showMenu() {
         guard let button = statusItem.button else {
             return
         }
 
         let menu = NSMenu()
+        menu.addItem(
+            NSMenuItem(
+                title: "Open monitor",
+                action: #selector(showMonitor),
+                keyEquivalent: "m"
+            )
+        )
+        menu.addItem(
+            NSMenuItem(
+                title: "Open control panel",
+                action: #selector(showControlPanel),
+                keyEquivalent: "c"
+            )
+        )
         menu.addItem(
             NSMenuItem(
                 title: "Refresh now",
@@ -75,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSMenuItem(
                 title: "Copy report",
                 action: #selector(copyReport),
-                keyEquivalent: "c"
+                keyEquivalent: "k"
             )
         )
         menu.addItem(.separator())
@@ -95,6 +134,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             at: NSPoint(x: 0, y: button.bounds.height + 4),
             in: button
         )
+    }
+
+    @objc private func showMonitor() {
+        store.selectedTab = .monitor
+        showPopover()
+    }
+
+    @objc private func showControlPanel() {
+        store.selectedTab = .control
+        showPopover()
     }
 
     @objc private func refreshNow() {

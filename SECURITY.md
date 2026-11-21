@@ -16,7 +16,7 @@ repository profile.
 
 ## Scope
 
-NullMoth Monitor is a read-only, local-only diagnostic tool. In scope:
+NullMoth Monitor is a local diagnostic tool. In scope:
 
 - Code execution or privilege escalation caused by parsing untrusted input.
 - Path traversal or file writes outside the app's own bundle.
@@ -34,9 +34,12 @@ Out of scope:
 ## Design guarantees
 
 - The app and CLI never write EFI, OpenCore config, kexts, NVRAM, SIP, or system
-  settings.
+  settings. The only change the app makes is applying a display mode the user
+  picked, which macOS keeps for the session.
 - There is no privileged helper.
-- There are no network requests.
+- There is no telemetry. The only outbound request is the driver update check:
+  a read-only call to `api.github.com` that the user starts, which downloads
+  nothing and sends nothing else.
 - Reports are built from an allow-list of fields and exclude serial numbers,
   UUIDs, EDIDs, and user paths.
 

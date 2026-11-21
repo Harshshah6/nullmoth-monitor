@@ -4,12 +4,15 @@ Thanks for helping improve NullMoth Monitor.
 
 ## Ground rules
 
-- **Read-only.** Never add code that writes EFI, OpenCore config, kexts, NVRAM,
-  SIP, or system settings. No privileged helpers.
+- **Read-only system state.** Never add code that writes EFI, OpenCore config,
+  kexts, NVRAM, SIP, or system settings. No privileged helpers. Applying a
+  display mode the user picked is allowed: it needs no rights and is a session
+  setting.
 - **No driver redistribution.** Do not vendor NullMoth kexts, the Metal plugin,
-  firmware, or Apple binaries.
-- **No telemetry or network.** No analytics, crash reporting, auto-update, or
-  HTTP calls.
+  firmware, or Apple binaries. Do not install or update the driver.
+- **No telemetry.** No analytics, crash reporting, or auto-update. The only
+  network request is the driver update check, which the user starts and which
+  downloads nothing.
 - **Privacy.** Reports must exclude serial numbers, UUIDs, EDIDs, and user paths.
 - **No affiliation claims.** Keep the "not affiliated with NullMoth" disclaimer.
 - **Graceful degradation.** The app must work without the driver.
@@ -51,7 +54,8 @@ detected at runtime through the `MTLGPUFamily` raw value.
 
 ## Pull request checklist
 
-- [ ] The change is read-only and adds no network access.
+- [ ] The change is read-only and adds no network access beyond the explicit
+      update check.
 - [ ] `swift test` passes.
 - [ ] `make app` succeeds and the app launches.
 - [ ] Release-affecting changes keep `make app-universal` working

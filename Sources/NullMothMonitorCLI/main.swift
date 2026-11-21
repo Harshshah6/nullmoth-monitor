@@ -96,6 +96,94 @@ private func watch() {
     }
 }
 
+private func printDoctor() {
+    let report = DriverProbe.settingsReport()
+
+    print("NullMoth Monitor — driver setup")
+    print("  csr-active-config: \(report.csrActiveConfig ?? "unreadable")")
+    print("  WhateverGreen:     \(report.whateverGreenLoaded ? "loaded" : "not loaded")")
+    print("")
+
+    for finding in report.findings {
+        let marker: String
+        switch finding.severity {
+        case .ok: marker = "ok      "
+        case .info: marker = "info    "
+        case .warning: marker = "warning "
+        case .critical: marker = "critical"
+        }
+        print("  [\(marker)] \(finding.title)")
+        print("            \(finding.detail)")
+    }
+
+    print("")
+    print("  Current boot-args:")
+    print("    \(report.bootArgs.isEmpty ? "(empty)" : report.bootArgs)")
+    if report.suggestedBootArgs != report.bootArgs {
+        print("  Suggested boot-args:")
+        print("    \(report.suggestedBootArgs)")
+    }
+}
+
+private func printModes() {
+    let catalogs = DisplayModeProbe.catalogs()
+
+    if catalogs.isEmpty {
+        print("No online displays were reported.")
+        return
+    }
+
+    for catalog in catalogs {
+        let refresh = catalog.currentRefreshRate.map { String(format: "%.0f Hz", $0) } ?? "unknown"
+        print("\(catalog.displayName)\(catalog.isMain ? " (main)" : "") — \(catalog.currentWidth)×\(catalog.currentHeight) @ \(refresh)")
+        for mode in catalog.modes {
+            let marker = mode.isCurrent ? "*" : " "
+            print("  \(marker) \(mode.label)")
+        }
+    }
+}
+
+private func printCapabilities() {
+    let capabilities = CapabilityProbe.capabilities()
+
+    print("NullMoth Monitor — driver capabilities")
+    for item in capabilities.items {
+        print("  \(item.name): \(item.value)")
+        if let detail = item.detail, !detail.isEmpty {
+            print("      \(detail)")
+        }
+    }
+}
+
+private func checkForUpdate() {
+    let snapshot = MonitorProbe.snapshot()
+    let installed = snapshot.gpu.driverVersion ?? snapshot.driver.driverVersion
+
+    print("Checking the NullMoth release feed…")
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: UpdateCheckResult = .failed("The check did not finish.")
+
+    Task {
+        result = await UpdateChecker.checkDriver(installedVersion: installed)
+        semaphore.signal()
+    }
+    semaphore.wait()
+
+    switch result {
+    case .upToDate(let release):
+        print("Installed driver \(release.version) is up to date.")
+        if let published = release.publishedAt {
+            print("Published \(published).")
+        }
+        print(release.url)
+    case .updateAvailable(let installed, let release):
+        print("Driver \(installed) is installed; \(release.version) is available.")
+        print(release.url)
+    case .failed(let message):
+        fail("The update check failed: \(message)")
+    }
+}
+
 private func printHelp() {
     print("""
     nullmoth-mon — read-only monitor for the NullMoth NVIDIA driver
@@ -105,10 +193,15 @@ private func printHelp() {
       nullmoth-mon --json       Full snapshot as JSON
       nullmoth-mon --report     Redacted Markdown report
       nullmoth-mon --watch      One compact line per second
+      nullmoth-mon --doctor     Audit the driver setup against the NullMoth docs
+      nullmoth-mon --modes      List the display modes macOS offers
+      nullmoth-mon --capabilities  Report what the driver supports
+      nullmoth-mon --check-update  Ask GitHub for the latest driver release
       nullmoth-mon --help       Show this help
 
-    The tool only reads IOKit, CoreGraphics, CoreAudio, Metal, SMC, and
-    read-only system commands. It never changes OpenCore, kexts, or NVRAM.
+    The tool reads IOKit, CoreGraphics, CoreAudio, Metal, SMC, and read-only
+    system commands. It never changes OpenCore, kexts, or NVRAM. The only
+    network request is the update check, which happens when you ask for it.
     """)
 }
 
@@ -136,6 +229,18 @@ case "--report":
 
 case "--watch":
     watch()
+
+case "--doctor":
+    printDoctor()
+
+case "--modes":
+    printModes()
+
+case "--capabilities":
+    printCapabilities()
+
+case "--check-update":
+    checkForUpdate()
 
 case "--help", "-h":
     printHelp()

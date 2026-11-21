@@ -71,8 +71,8 @@ and uploads `NullMothMonitor.zip` as an artifact.
 ## 4. Cut a release
 
 ```sh
-git tag -a v0.1.2 -m "NullMoth Monitor 0.1.2"
-git push origin v0.1.2
+git tag -a v0.2.0 -m "NullMoth Monitor 0.2.0"
+git push origin v0.2.0
 ```
 
 The `Release` workflow builds the universal app, stamps the version from the tag,
@@ -82,10 +82,10 @@ and a combined SHA-256 file, then creates a GitHub Release.
 Verify:
 
 ```sh
-gh release view v0.1.2
-gh release download v0.1.2
-shasum -a 256 -c SHA256SUMS-v0.1.2.txt
-unzip -q NullMothMonitor-v0.1.2.zip -d /tmp/nullmoth-check
+gh release view v0.2.0
+gh release download v0.2.0
+shasum -a 256 -c SHA256SUMS-v0.2.0.txt
+unzip -q NullMothMonitor-v0.2.0.zip -d /tmp/nullmoth-check
 lipo -archs "/tmp/nullmoth-check/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor"
 # expected: x86_64 arm64
 ```
@@ -126,9 +126,9 @@ prerequisite for publishing source.
 ## 7. If you need to undo a release
 
 ```sh
-gh release delete v0.1.2 --yes
-git push origin :refs/tags/v0.1.2
-git tag -d v0.1.2
+gh release delete v0.2.0 --yes
+git push origin :refs/tags/v0.2.0
+git tag -d v0.2.0
 ```
 
 Then fix the issue, retag, and push again. Do not reuse a tag that already

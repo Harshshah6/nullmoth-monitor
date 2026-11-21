@@ -19,12 +19,16 @@ update, rollback, and log upload.
 
 ## Non-negotiable rules
 
-- **Read-only.** Never write EFI, OpenCore config, kexts, NVRAM, SIP, or system
-  settings. Do not add a privileged helper.
+- **Read-only system state.** Never write EFI, OpenCore config, kexts, NVRAM,
+  SIP, or system settings. Do not add a privileged helper. The one exception is
+  applying a display mode the user picked in the app, which is a session
+  setting with no administrator rights.
 - **No driver redistribution.** Never vendor or download NullMoth kexts,
-  `NVMTLDriver.bundle`, firmware, or Apple binaries.
-- **No telemetry or network.** No analytics, crash reporting, auto-update, or
-  HTTP calls.
+  `NVMTLDriver.bundle`, firmware, or Apple binaries. Never install or update the
+  driver; that is the 1401 app's job.
+- **No telemetry.** No analytics, crash reporting, or auto-update. The only
+  network request is the driver update check, which happens when the user asks
+  for it, goes to `api.github.com`, and downloads nothing.
 - **No affiliation.** Do not imply NullMoth endorses this project. Keep the
   disclaimer visible.
 - **Privacy.** Reports must exclude serial numbers, UUIDs, EDIDs, and user paths.
@@ -35,17 +39,24 @@ update, rollback, and log upload.
 
 ```sh
 swift build                 # debug build
-swift test                  # 34 tests, no driver required
+swift test                  # 55 tests, no driver required
 make app                    # release .app for this Mac's architecture
 make app-universal          # release .app for x86_64 + arm64 (use for releases)
 make run                    # build + open
 .build/debug/nullmoth-mon   # CLI summary
 .build/debug/nullmoth-mon --json
 .build/debug/nullmoth-mon --report
+.build/debug/nullmoth-mon --doctor
+.build/debug/nullmoth-mon --modes
+.build/debug/nullmoth-mon --capabilities
+.build/debug/nullmoth-mon --check-update
 make icon                   # regenerate Support/AppIcon.icns
 ```
 
 Driver log lines go to stderr. When piping JSON, use `2>/dev/null`.
+
+The app accepts `--show-monitor` and `--show-control` launch arguments to open
+the popover on a specific tab, which makes screenshots and UI checks easier.
 
 ## Architecture
 
@@ -55,11 +66,16 @@ Driver log lines go to stderr. When piping JSON, use `2>/dev/null`.
 | `Sources/NullMothCore/MonitorProbe.swift` | Single snapshot entry point |
 | `Sources/NullMothCore/GPUProbe.swift` | `NVAccel` / `NVRM` + Metal |
 | `Sources/NullMothCore/DisplayProbe.swift` | CoreGraphics + `NSScreen` |
+| `Sources/NullMothCore/DisplayModeProbe.swift` | Display mode list and apply |
 | `Sources/NullMothCore/AudioProbe.swift` | CoreAudio |
 | `Sources/NullMothCore/DriverProbe.swift` | kexts, boot args, SIP, plugin |
+| `Sources/NullMothCore/DriverSettingsAudit.swift` | Setup audit against the docs |
+| `Sources/NullMothCore/CapabilityProbe.swift` | Metal, VideoToolbox, OpenGL, firmware |
+| `Sources/NullMothCore/UpdateChecker.swift` | Explicit GitHub release check |
 | `Sources/NullMothCore/SMCProbe.swift` | optional fan RPM |
 | `Sources/NullMothCore/SystemProbe.swift` | sysctl + VRAM total |
 | `Sources/NullMothCore/Report.swift` | redacted Markdown report |
+| `Sources/NullMothOpenGL/` | C shim for the deprecated OpenGL API |
 | `Sources/NullMothMonitorCLI/main.swift` | CLI |
 | `Sources/NullMothMonitorApp/` | menu bar app |
 | `Tests/NullMothCoreTests/` | parser and report tests |
@@ -76,6 +92,11 @@ probes; the app samples on a background queue.
 5. Include it in `Report.swift` if it helps bug reports.
 6. Add a pure parser test if you parse text.
 7. Run `swift test` and `make app-universal`.
+
+The control panel has its own flow: `ControlStore` loads the display catalogs,
+the settings audit, and the capabilities in the background, and
+`ControlPanelView` renders them. Keep network calls inside
+`UpdateChecker`, and keep them user initiated.
 
 ## Conventions
 
@@ -95,6 +116,10 @@ probes; the app samples on a background queue.
   so older SDKs still build and newer OSes still report Metal 4.
 - `system_profiler` is slow; it is cached after the first read.
 - Boot arguments vary; only require `nvfb=1`, `nvaccel=1`, and one AMFI bypass.
+- The setup audit is stricter than the quick check: it follows the driver's
+  documented `boot-args` and `csr-active-config 0x0A43`.
+- `csr-active-config` is read with `nvram -X` and stored little endian, so
+  `430a0000` means `0x00000A43`.
 - The app is `LSUIElement` (menu bar only) and ad-hoc signed.
 - macOS 27 drops Intel; target macOS 14–26.
 - **Never release with plain `make app`.** GitHub's `macos-15` runner is arm64,
@@ -105,7 +130,9 @@ probes; the app samples on a background queue.
 
 - Add install, update, rollback, or log-upload features.
 - Add a privileged helper or shell out to destructive commands.
-- Add network access or third-party dependencies without a strong reason.
+- Add network access beyond the explicit update check, or third-party
+  dependencies without a strong reason.
+- Write OpenCore, NVRAM, kexts, or system settings.
 - Store history on disk or collect identifiers.
 - Claim the driver is safe, official, or supported by NullMoth.
 

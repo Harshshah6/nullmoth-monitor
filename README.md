@@ -17,10 +17,12 @@ or NVRAM.
 > Not affiliated with NullMoth. This project contains no driver code, kexts,
 > firmware, or Apple binaries, and is licensed separately under MIT.
 
-**Status:** `0.1.2` — read-only, universal (`x86_64` + `arm64`), tested on
-macOS 26.7.3 with an NVIDIA RTX 3060.
+**Status:** `0.2.0` — monitor and control panel, universal (`x86_64` + `arm64`),
+tested on macOS 26.7.3 with an NVIDIA RTX 3060.
 
 ## Features
+
+### Monitor tab
 
 - **Menu bar readout** — live GPU utilization and temperature.
 - **GPU panel** — core, memory, encode, and decode utilization; temperature;
@@ -30,9 +32,30 @@ macOS 26.7.3 with an NVIDIA RTX 3060.
 - **Driver health** — NVRM/NVAccel/NVRMFB/NVRMAGDC load state and versions,
   Metal plugin version, SIP status, and boot-argument checks.
 - **Fans** — RPM when the SMC exposes `FNum`/`F<n>Ac`; gracefully absent otherwise.
-- **CLI** — human summary, JSON, Markdown report, and a one-line watch mode.
-- **Private by default** — no telemetry, no network calls, no serial numbers,
-  UUIDs, or EDIDs in reports.
+
+### Control panel tab
+
+- **Display control** — switch resolution and refresh rate per display. macOS
+  often leaves modes out of System Settings on a Hackintosh; this list comes
+  straight from CoreGraphics. It is a session setting, needs no administrator
+  rights, and nothing is written to disk.
+- **Driver setup doctor** — audits boot arguments and `csr-active-config`
+  against the NullMoth documentation and shows a corrected `boot-args` string
+  to copy. Read-only: the app never edits OpenCore.
+- **Capability report** — Metal family, argument buffers, ray tracing, MPS,
+  hardware H.264/HEVC encode and decode, OpenGL through GL-on-Metal, and the GSP
+  firmware version.
+- **Driver update check** — asks GitHub for the newest NullMoth release and
+  compares it with the installed driver. Nothing is downloaded or installed; the
+  1401 app does that.
+
+### Everywhere
+
+- **CLI** — human summary, JSON, Markdown report, watch mode, setup doctor,
+  display modes, capabilities, and update check.
+- **Private by default** — no telemetry; the update check is the only network
+  request and only runs when you ask for it. No serial numbers, UUIDs, or
+  EDIDs in reports.
 
 ## Requirements
 
@@ -53,7 +76,8 @@ open "build/NullMoth Monitor.app"
 ```
 
 The app is a menu bar accessory (`LSUIElement`), so it has no Dock icon. Click the
-status item for the panel, right-click for refresh, copy-report, and quit.
+status item for the panel, right-click for the monitor, the control panel, a
+refresh, a copied report, and quit.
 
 ### Install the CLI
 
@@ -64,15 +88,20 @@ sudo make install PREFIX=/usr/local
 ## CLI
 
 ```sh
-nullmoth-mon              # human-readable summary
-nullmoth-mon --json       # full snapshot as JSON
-nullmoth-mon --report     # redacted Markdown report
-nullmoth-mon --watch      # one compact line per second
+nullmoth-mon                  # human-readable summary
+nullmoth-mon --json           # full snapshot as JSON
+nullmoth-mon --report         # redacted Markdown report
+nullmoth-mon --watch          # one compact line per second
+nullmoth-mon --doctor         # audit the driver setup
+nullmoth-mon --modes          # list the display modes macOS offers
+nullmoth-mon --capabilities   # report what the driver supports
+nullmoth-mon --check-update   # ask GitHub for the latest driver release
 nullmoth-mon --help
 ```
 
 `--json` is safe to pipe: the driver writes its own log lines to stderr, so stdout
-stays valid JSON.
+stays valid JSON. `--check-update` is the only command that touches the network,
+and only when you run it.
 
 Example:
 
@@ -105,14 +134,21 @@ NullMoth Monitor
 | GPU name, Metal family, ray tracing | Metal (`MTLCopyAllDevices`) |
 | VRAM total | `system_profiler SPDisplaysDataType -json` |
 | Displays | CoreGraphics + `NSScreen.localizedName` |
+| Display modes | CoreGraphics (`CGDisplayCopyAllDisplayModes`) |
 | Audio devices | CoreAudio |
 | Kexts | `kmutil showloaded` |
 | SIP | `csrutil status` |
 | Boot arguments | `nvram boot-args` |
+| SIP configuration value | `nvram -X csr-active-config` |
+| Hardware video codecs | VideoToolbox (`VTIsHardwareDecodeSupported`, encoder list) |
+| OpenGL renderer | CGL (`CGLChoosePixelFormat`) |
+| GSP firmware version | `/Library/NullMoth/nvfw/nvidia` |
+| Driver releases | GitHub releases API, only on request |
 | Fans | `AppleSMC` (`FNum`, `F<n>Ac`) |
 
-All probes are read-only. Expensive probes (kexts, SIP, boot args, VRAM total) are
-cached for 30–60 seconds; GPU and display probes run every refresh.
+All probes are read-only, except applying a display mode the user picked. Expensive
+probes (kexts, SIP, boot args, VRAM total) are cached for 30–60 seconds; GPU and
+display probes run every refresh.
 
 ## Notes and limitations
 
@@ -124,16 +160,23 @@ cached for 30–60 seconds; GPU and display probes run every refresh.
   `NVMTL over NVIDIA GeForce RTX 3060 (NVK GA106-A)`); the app displays the clean
   card name.
 - macOS 27 drops Intel support, so this tool targets macOS 14–26.
+- The driver has no user-facing settings surface, so there is no Windows-style
+  power profile, per-application GPU preference, or overclocking control to
+  offer. The driver's configuration lives in OpenCore (`boot-args`,
+  `csr-active-config`, `SecureBootModel`), and the doctor audits those instead
+  of writing them.
 
 ## Project layout
 
 ```
 Sources/NullMothCore/          probes, models, and report generation
+Sources/NullMothOpenGL/        small C shim for the deprecated OpenGL API
 Sources/NullMothMonitorCLI/    nullmoth-mon
 Sources/NullMothMonitorApp/    menu bar app (AppKit + SwiftUI)
 Tests/NullMothCoreTests/       parser and report tests
 Scripts/GenerateIcon.swift     deterministic icon renderer
 Scripts/make-icon.sh           PNG → .icns
+Scripts/bundle.sh              app bundle builder
 Support/Info.plist             app bundle metadata
 Support/AppIcon.png            icon source (1024×1024)
 Support/AppIcon.icns           bundled icon

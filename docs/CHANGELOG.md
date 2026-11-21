@@ -6,6 +6,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
+### Added
+
+- Control panel tab next to the live monitor.
+- Display mode control: per-display resolution and refresh rate, straight from
+  CoreGraphics. macOS often leaves modes out of System Settings on a
+  Hackintosh. Applying a mode needs no administrator rights and is not written
+  to disk.
+- Driver setup doctor: audits boot arguments and `csr-active-config` against the
+  NullMoth documentation and offers a corrected `boot-args` string to copy.
+  Read-only.
+- Capability report: Metal family, argument buffers, ray tracing, MPS, hardware
+  H.264/HEVC encode and decode, OpenGL through GL-on-Metal, and the GSP firmware
+  version.
+- Driver update check: compares the installed driver with the latest NullMoth
+  release. The request is only made when the user asks for it and downloads
+  nothing.
+- CLI commands: `--doctor`, `--modes`, `--capabilities`, and `--check-update`.
+- `--show-monitor` and `--show-control` launch arguments for UI checks.
+
+### Changed
+
+- The app is now a monitor **and** a control panel. The menu bar item opens
+  either tab.
+- The footer no longer says "read-only": applying a display mode is the one
+  change the app can make.
+
 ## [0.1.2] - 2026-11-21
 
 ### Fixed
@@ -44,7 +72,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Unit tests for parsers, boot-argument diagnostics, and report output.
 - CI and tag-release GitHub Actions workflows.
 
-[Unreleased]: https://github.com/Harshshah6/nullmoth-monitor/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Harshshah6/nullmoth-monitor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.2.0
 [0.1.2]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.1.0

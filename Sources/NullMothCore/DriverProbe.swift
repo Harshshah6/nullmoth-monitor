@@ -28,6 +28,9 @@ public enum DriverProbe {
     private static var lastSIPRead = Date.distantPast
     private static var cachedBootArgs: String?
     private static var lastBootArgsRead = Date.distantPast
+    private static var cachedCSR: String??
+    private static var lastCSRRead = Date.distantPast
+    private static var cachedKMUtilOutput = ""
 
     public static func info() -> DriverInfo {
         let nvrm = IOKitProbe.properties(ofServiceNamed: "NVRM")
@@ -47,6 +50,47 @@ public enum DriverProbe {
             sipStatus: sipStatus(),
             secureBootModel: nil
         )
+    }
+
+    /// Audits the running setup against the NullMoth documentation. The audit
+    /// only reads; it never changes OpenCore, NVRAM, or the kexts.
+    public static func settingsReport() -> DriverSettingsReport {
+        let driver = info()
+        return DriverSettingsAudit.audit(
+            bootArgs: driver.bootArgs,
+            csrActiveConfig: csrActiveConfig(),
+            whateverGreenLoaded: whateverGreenLoaded(),
+            kextsLoaded: driver.kexts.filter(\.loaded).count,
+            kextsTotal: driver.kexts.count
+        )
+    }
+
+    /// The raw `csr-active-config` value OpenCore set, for example `430a0000`.
+    public static func csrActiveConfig() -> String? {
+        if Date().timeIntervalSince(lastCSRRead) < 60, let cached = cachedCSR {
+            return cached
+        }
+
+        let result = Shell.run("/usr/sbin/nvram", ["-X", "csr-active-config"])
+        var value: String?
+        if result.status == 0 {
+            let line = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let range = line.range(of: "\t") {
+                value = String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            } else if !line.isEmpty {
+                value = line
+            }
+        }
+
+        cachedCSR = .some(value)
+        lastCSRRead = Date()
+        return value
+    }
+
+    /// WhateverGreen changes how the boot screen is copied, so the audit needs
+    /// to know whether it is loaded.
+    public static func whateverGreenLoaded() -> Bool {
+        kmutilOutput().localizedCaseInsensitiveContains("WhateverGreen")
     }
 
     static func bootArgumentDiagnostics(
@@ -141,19 +185,17 @@ public enum DriverProbe {
             return cachedKexts
         }
 
-        let result = Shell.run("/usr/bin/kmutil", ["showloaded"])
+        let output = kmutilOutput()
         var loaded: [String: String] = [:]
 
-        if result.status == 0 {
-            let pattern = #"(?m)^\s*\d+\s+\d+\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+(com\.nullmoth\.[A-Za-z0-9_.-]+)\s+\(([^)]*)\)"#
-            if let regex = try? NSRegularExpression(pattern: pattern) {
-                let text = result.stdout as NSString
-                let range = NSRange(location: 0, length: text.length)
-                for match in regex.matches(in: result.stdout, range: range) where match.numberOfRanges >= 3 {
-                    let identifier = text.substring(with: match.range(at: 1))
-                    let version = text.substring(with: match.range(at: 2))
-                    loaded[identifier] = version
-                }
+        let pattern = #"(?m)^\s*\d+\s+\d+\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+(com\.nullmoth\.[A-Za-z0-9_.-]+)\s+\(([^)]*)\)"#
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let text = output as NSString
+            let range = NSRange(location: 0, length: text.length)
+            for match in regex.matches(in: output, range: range) where match.numberOfRanges >= 3 {
+                let identifier = text.substring(with: match.range(at: 1))
+                let version = text.substring(with: match.range(at: 2))
+                loaded[identifier] = version
             }
         }
 
@@ -168,5 +210,16 @@ public enum DriverProbe {
         cachedKexts = infos
         lastKextRead = Date()
         return infos
+    }
+
+    private static func kmutilOutput() -> String {
+        if Date().timeIntervalSince(lastKextRead) < 30, !cachedKexts.isEmpty {
+            return cachedKMUtilOutput
+        }
+
+        let result = Shell.run("/usr/bin/kmutil", ["showloaded"])
+        cachedKMUtilOutput = result.stdout
+        lastKextRead = Date()
+        return cachedKMUtilOutput
     }
 }

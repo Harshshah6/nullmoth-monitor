@@ -19,24 +19,30 @@ diagnostics.
 - Repository: <https://github.com/Harshshah6/nullmoth-monitor>
 - License: MIT (the driver remains under its own PolyForm Noncommercial license)
 - Bundle identifier: `io.github.nullmothmonitor.app`
-- Current version: `0.1.2`
+- Current version: `0.2.0`
 
 ## 2. Current status
 
 ### Done
 
-- Swift package with `NullMothCore`, `nullmoth-mon`, and `NullMothMonitor`.
+- Swift package with `NullMothCore`, `NullMothOpenGL`, `nullmoth-mon`, and
+  `NullMothMonitor`.
 - Read-only probes: GPU, Metal, displays, audio, driver, system, SMC fans.
 - Menu bar app with popover, sparkline, pause/refresh/copy-report controls.
-- CLI modes: summary, `--json`, `--report`, `--watch`, `--help`.
-- 34 unit tests for parsers, boot-argument checks, and report output.
+- Control panel tab: display mode control, driver setup doctor, capability
+  report, and an explicit driver update check.
+- CLI modes: summary, `--json`, `--report`, `--watch`, `--doctor`, `--modes`,
+  `--capabilities`, `--check-update`, `--help`.
+- 55 unit tests for parsers, boot-argument checks, the setup audit, version
+  comparison, and report output.
 - App icon generated from `Scripts/GenerateIcon.swift` and bundled as `.icns`.
 - CI and tag-release GitHub Actions workflows.
 - Universal release build (`make app-universal`) with `lipo` and CI checks for
   both `x86_64` and `arm64` slices.
 - README, CONTRIBUTING, SECURITY, issue/PR templates, `.editorconfig`.
 - `docs/` with handoff notes, publishing steps, a changelog, and an index.
-- Git repository initialized with an initial history.
+- Git history rewritten so every commit, including the first, is authored by
+  the repository owner.
 
 ### Verified on real hardware
 
@@ -80,12 +86,24 @@ Also verified:
 
 - `--json` is valid JSON with stderr redirected; the driver logs to stderr.
 - `--watch` prints one line per second.
+- `--doctor` reports every documented requirement as OK on the test machine:
+  `nvfb=1`, `nvaccel=1`, `nvfbheads=4`, `-nvkmsnosmooth`, the AMFI bypass,
+  `ipc_control_port_options=0`, `gfxrst=4` (WhateverGreen is loaded), and
+  `csr-active-config 0x430a0000`, which contains the tested bits `0x0A43`.
+- `--modes` lists the real modes of both displays, for example
+  `1920×1080 @ 50/60/85/100 Hz` on the MSI MP223.
+- `--capabilities` reports Metal tier 2 argument buffers, ray tracing, MPS,
+  hardware H.264 and HEVC encode and decode, an accelerated OpenGL renderer,
+  and GSP firmware `620.70.06`.
+- `--check-update` compared driver `3.0` with the published `v3.0` release and
+  reported "up to date".
 - `make app` produces a codesign-verifiable bundle at
   `build/NullMoth Monitor.app`.
 - `make app-universal` produces a universal bundle; `lipo -archs` reports
   `x86_64 arm64`.
 - The universal app and universal CLI both run on the Intel test machine.
 - The app launches as an accessory and idles at roughly 0% CPU.
+- Both tabs were checked visually with `--show-monitor` and `--show-control`.
 
 ## 3. Environment and reproduction
 
@@ -116,43 +134,68 @@ CLI:
 .build/debug/nullmoth-mon --json 2>/dev/null
 .build/debug/nullmoth-mon --report 2>/dev/null
 .build/debug/nullmoth-mon --watch
+.build/debug/nullmoth-mon --doctor 2>/dev/null
+.build/debug/nullmoth-mon --modes 2>/dev/null
+.build/debug/nullmoth-mon --capabilities 2>/dev/null
+.build/debug/nullmoth-mon --check-update 2>/dev/null
+```
+
+UI checks:
+
+```sh
+"build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor" --show-monitor
+"build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor" --show-control
 ```
 
 ## 4. Architecture
 
 ```
 Sources/NullMothCore/
-  Models.swift        Codable, Equatable, Sendable snapshot models
-  MonitorProbe.swift  MonitorProbe.snapshot() — single entry point
-  GPUProbe.swift      NVAccel PerformanceStatistics + NVRM + Metal
-  DisplayProbe.swift  CGGetOnlineDisplayList + NSScreen names
-  AudioProbe.swift    CoreAudio device enumeration
-  DriverProbe.swift   kmutil, nvram, csrutil, plugin bundle
-  SMCProbe.swift      AppleSMC FNum / F<n>Ac
-  SystemProbe.swift   sysctl, VRAM total via system_profiler
-  Report.swift        Markdown report with no identifiers
-  IOKitProbe.swift    IORegistry helpers
-  Shell.swift         Process helper
+  Models.swift               Codable, Equatable, Sendable snapshot models
+  MonitorProbe.swift         MonitorProbe.snapshot() — single entry point
+  GPUProbe.swift             NVAccel PerformanceStatistics + NVRM + Metal
+  DisplayProbe.swift         CGGetOnlineDisplayList + NSScreen names
+  DisplayModeProbe.swift     display mode list + apply
+  AudioProbe.swift           CoreAudio device enumeration
+  DriverProbe.swift          kmutil, nvram, csrutil, plugin bundle
+  DriverSettingsAudit.swift  boot-args and csr-active-config audit
+  CapabilityProbe.swift      Metal, VideoToolbox, OpenGL, GSP firmware
+  UpdateChecker.swift        explicit GitHub release check
+  SMCProbe.swift             AppleSMC FNum / F<n>Ac
+  SystemProbe.swift          sysctl, VRAM total via system_profiler
+  Report.swift               Markdown report with no identifiers
+  IOKitProbe.swift           IORegistry helpers
+  Shell.swift                Process helper
+
+Sources/NullMothOpenGL/
+  openGL.c                   CGLCheck for an accelerated renderer (C shim)
 
 Sources/NullMothMonitorCLI/
-  main.swift          summary / json / report / watch
+  main.swift                 summary / json / report / watch / doctor / modes /
+                             capabilities / check-update
 
 Sources/NullMothMonitorApp/
-  main.swift          NSStatusItem + NSPopover + AppDelegate
-  MonitorStore.swift  timer, background sampling, history
-  MonitorView.swift   SwiftUI popover
-  Sparkline.swift     utilization history
+  main.swift                 NSStatusItem + NSPopover + AppDelegate
+  MonitorStore.swift         timer, background sampling, history, tab selection
+  MonitorView.swift          RootView with Monitor and Control tabs
+  ControlStore.swift         display catalogs, audit, capabilities, update state
+  ControlPanelView.swift     control panel UI
+  Sparkline.swift            utilization history
 
 Tests/NullMothCoreTests/
   SystemProbeTests.swift
   DriverProbeTests.swift
+  DriverSettingsAuditTests.swift
+  DisplayModeInfoTests.swift
   MetalProbeTests.swift
   GPUProbeTests.swift
+  UpdateCheckerTests.swift
   ReportTests.swift
 
 Scripts/
   GenerateIcon.swift  deterministic 1024×1024 icon renderer
   make-icon.sh        iconset → AppIcon.icns
+  bundle.sh           app bundle builder
 
 Support/
   Info.plist          LSUIElement app metadata
@@ -213,6 +256,15 @@ VRAM total:
 - `CGDisplayCopyDisplayMode` → `pixelWidth`, `pixelHeight`, `refreshRate`
 - `NSScreen.screens` → `localizedName`, keyed by `NSScreenNumber`
 
+### Display modes
+
+- `CGDisplayCopyAllDisplayModes(display, nil)` → every mode the system offers
+- `CGDisplayMode.ioDisplayModeID`, `pixelWidth`, `pixelHeight`, `width`,
+  `height`, `refreshRate`
+- `CGDisplaySetDisplayMode(display, mode, nil)` applies a mode; no options, so
+  nothing is stored in the system preferences
+- A scaled mode has `pixelWidth != width`, which is shown as "HiDPI"
+
 ### Audio
 
 - `kAudioHardwarePropertyDevices`
@@ -225,8 +277,26 @@ VRAM total:
 
 - `/usr/bin/kmutil showloaded` → regex for `com.nullmoth.*` and version
 - `/usr/sbin/nvram boot-args`
+- `/usr/sbin/nvram -X csr-active-config` → `0x430a0000`, stored little endian
 - `/usr/bin/csrutil status`
 - `/Library/GPUBundles/NVMTLDriver.bundle` → `CFBundleShortVersionString`
+- `as.vit9696.WhateverGreen` in `kmutil showloaded` → `gfxrst=4` is required
+
+### Capabilities
+
+- Metal: `argumentBuffersSupport`, `supportsRaytracing`, `supportsFamily`,
+  `location`, `hasUnifiedMemory`, `maxBufferLength`, `architecture.name`
+- VideoToolbox: `VTIsHardwareDecodeSupported(codec)` for decode,
+  `VTCopyVideoEncoderList` with `kVTVideoEncoderList_IsHardwareAccelerated` for
+  encode
+- OpenGL: `CGLChoosePixelFormat` with `kCGLPFAAccelerated` (C shim, because the
+  framework is deprecated)
+- Firmware: directory names under `/Library/NullMoth/nvfw/nvidia`
+
+### Driver releases
+
+- `https://api.github.com/repos/nullmoth/nvidia-macos-driver/releases/latest`
+- Only requested by the user, through `UpdateChecker`
 
 ### Fans
 
@@ -241,19 +311,25 @@ VRAM total:
   most reliable menu bar pattern from a SwiftPM executable. SwiftUI-only menu
   bar APIs were less predictable.
 - **Read-only first.** Writing EFI or NVRAM is the fastest way to break a
-  Hackintosh. Diagnostics are useful without that risk.
-- **No installer features.** Avoid duplicating 1401. Monitoring and report export
-  are the differentiators.
+  Hackintosh. Diagnostics are useful without that risk. Applying a display mode
+  the user picked is the single exception: it is a session setting, needs no
+  rights, and is not stored.
+- **No installer features.** Avoid duplicating 1401. Monitoring, the setup
+  doctor, and the update check are the differentiators.
 - **Menu bar, not a window.** GPU stats are glanceable; a full window is heavier
   than the job needs.
 - **MIT license.** Keeps the tool clearly separate from the driver's PolyForm
   Noncommercial license. No driver code or firmware is included.
 - **Optional fans.** Many desktop boards expose no SMC fan keys. The UI hides the
   Fans card when the list is empty.
-- **Tolerant boot-argument checks.** Require `nvfb=1` and `nvaccel=1`, accept any
-  of `amfi_get_out_of_my_way=0x1`, `amfi=0x80`, or `-amfipassbeta`, and flag
-  `nv_disable=1` / `-wegnoegpu`. Machine-specific args such as `nvfbheads` and
-  `-nvkmsnosmooth` are shown but not required.
+- **Two levels of boot-argument checks.** The quick check in the monitor tab
+  requires `nvfb=1` and `nvaccel=1` and accepts any one AMFI bypass. The doctor
+  in the control panel follows the driver's documentation in full: all required
+  arguments, the forbidden legacy switches, `gfxrst=4` when WhateverGreen is
+  loaded, and `csr-active-config` containing `0x0A43`.
+- **Network only on request.** The update check is the only outbound call. It is
+  never automatic, never sends anything but the request, and never downloads a
+  driver.
 - **Background sampling.** Probes run on a serial utility queue so the popover
   stays responsive, especially while `system_profiler` and `kmutil` run.
 - **Privacy.** Reports are built from an allow-list of fields. They exclude
@@ -264,6 +340,9 @@ VRAM total:
 - GPU utilization is integer percent at 1 Hz. Sub-second spikes are smoothed.
 - The driver does not expose per-process GPU usage, clocks, power draw, or fan
   control. Do not invent those numbers.
+- The driver has no user-facing settings surface, so there is no Windows-style
+  power profile, per-application GPU preference, or overclocking control to
+  offer. The driver's configuration lives in OpenCore.
 - VRAM total comes from `system_profiler`, which is slow on first read and is
   cached for the process lifetime.
 - The Metal device name is decorated by the translator, e.g.
@@ -290,7 +369,7 @@ VRAM total:
   `make app-universal`, which cross-compiles both slices and combines them with
   `lipo`. CI and the release workflow verify `x86_64 arm64`.
 - `v0.1.0` shipped arm64-only and is broken on Intel. `v0.1.1` is the universal
-  fix; `v0.1.2` adds runtime Metal 4 detection.
+  fix; `v0.1.2` adds runtime Metal 4 detection; `v0.2.0` adds the control panel.
 
 ## 8. Roadmap
 
@@ -301,18 +380,22 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
 - [x] Push to GitHub and confirm CI is green.
 - [x] Tag `v0.1.0` and verify the release workflow (arm64-only; superseded).
 - [x] Tag `v0.1.1` and verify the universal release.
-- [ ] Tag `v0.1.2` with runtime Metal 4 detection.
+- [x] Tag `v0.1.2` with runtime Metal 4 detection.
+- [x] Tag `v0.2.0` with the control panel.
 - [ ] Add a screenshot or short GIF to the README.
 - [ ] Add repository topics and description.
 
 ### P1 — high-value polish
 
 - [ ] Refresh immediately on display reconfiguration
-  (`CGDisplayRegisterReconfigurationCallback`).
+  (`CGDisplayRegisterReconfigurationCallback`). The mode list in the control
+  panel should follow a monitor being plugged in.
 - [ ] Add a °C/°F preference (persisted with `UserDefaults`; no network).
 - [ ] Add an `--watch --json` NDJSON mode for scripting.
 - [ ] Add "Save report…" with `NSSavePanel` in addition to copy.
 - [ ] Show the driver's BAR sizes in the UI (currently report-only).
+- [ ] Let the doctor show the OpenCore snippet with `csr-active-config
+  430A0000` next to the boot-args suggestion.
 
 ### P2 — useful extensions
 
@@ -322,12 +405,15 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
   without downloading anything at runtime.
 - [ ] Add a compact "driver health" summary badge in the popover header.
 - [ ] Add a `--once` alias and shell completion examples.
+- [ ] Check the driver's own release notes for a "known issues" section in the
+  update card.
 
 ### P3 — distribution
 
 - [ ] Developer ID signing and notarization (`notarytool`, stapling).
 - [ ] Homebrew cask.
-- [ ] Sparkle-style updates are **not** planned; no network access is a feature.
+- [ ] Sparkle-style automatic updates are **not** planned; the update check
+  stays user initiated.
 - [ ] Localization (English first).
 
 ### Explicit non-goals
@@ -336,6 +422,8 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
 - Uploading logs or reports automatically.
 - Fan control, overclocking, or voltage changes.
 - Writing NVRAM, EFI, kexts, or SIP state.
+- Windows-style GPU power profiles or per-application GPU preferences; the
+  driver has no such settings.
 - Per-process GPU attribution unless the driver starts exposing it.
 
 ## 9. Publishing checklist
@@ -345,7 +433,7 @@ See [PUBLISHING.md](PUBLISHING.md) for exact commands. Summary:
 1. Create `OWNER/nullmoth-monitor` on GitHub.
 2. Push the default branch (`master` in this repository).
 3. Confirm the CI workflow passes.
-4. Tag `v0.1.2`; the release workflow builds a universal app, verifies both
+4. Tag `v0.2.0`; the release workflow builds a universal app, verifies both
    architectures, and attaches the app zip, universal CLI, and SHA-256 file.
 5. Add a repository description and topics:
    `hackintosh`, `nvidia`, `macos`, `swift`, `menubar`, `gpu-monitor`.
@@ -364,6 +452,10 @@ swift build -c release
 .build/release/nullmoth-mon
 .build/release/nullmoth-mon --json 2>/dev/null | python3 -m json.tool >/dev/null && echo JSON_OK
 .build/release/nullmoth-mon --report 2>/dev/null | head -40
+.build/release/nullmoth-mon --doctor 2>/dev/null
+.build/release/nullmoth-mon --modes 2>/dev/null | head -20
+.build/release/nullmoth-mon --capabilities 2>/dev/null
+.build/release/nullmoth-mon --check-update 2>/dev/null
 make app-universal
 lipo -archs "build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor"
 # expected: x86_64 arm64
@@ -376,7 +468,10 @@ Then confirm:
 - The menu bar shows `GPU <n>% · <t>°`.
 - The popover shows GPU, Displays, Audio, and Driver sections.
 - The Fans card is absent on this machine (expected).
-- Right-click offers refresh, copy report, and quit.
+- The Control tab lists both displays, their modes, the audit, the capabilities,
+  and the update check.
+- Right-click offers the monitor, the control panel, refresh, copy report, and
+  quit.
 - `git status` is clean after committing.
 
 ## 11. Recent commits
@@ -389,6 +484,8 @@ Published tags:
 - `v0.1.0` — initial release; arm64-only, broken on Intel.
 - `v0.1.1` — universal build fix.
 - `v0.1.2` — runtime Metal 4 detection.
+- `v0.2.0` — control panel: display modes, setup doctor, capabilities, update
+  check.
 
 ## 12. License boundaries
 

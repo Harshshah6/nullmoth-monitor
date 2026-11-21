@@ -13,12 +13,18 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "NullMothOpenGL"
+        ),
+        .target(
             name: "NullMothCore",
+            dependencies: ["NullMothOpenGL"],
             linkerSettings: [
                 .linkedFramework("IOKit"),
                 .linkedFramework("CoreGraphics"),
                 .linkedFramework("CoreAudio"),
+                .linkedFramework("CoreMedia"),
                 .linkedFramework("Metal"),
+                .linkedFramework("VideoToolbox"),
                 .linkedFramework("AppKit"),
             ]
         ),

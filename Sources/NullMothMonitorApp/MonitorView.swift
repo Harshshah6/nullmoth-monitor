@@ -2,7 +2,41 @@ import AppKit
 import NullMothCore
 import SwiftUI
 
-struct MonitorView: View {
+/// The popover root: a live monitor tab and a control panel tab.
+struct RootView: View {
+    @ObservedObject var store: MonitorStore
+    @StateObject private var control = ControlStore()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $store.selectedTab) {
+                ForEach(MonitorStore.PanelTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+
+            switch store.selectedTab {
+            case .monitor:
+                MonitorPanel(store: store)
+            case .control:
+                ControlPanelView(store: control, monitor: store)
+            }
+        }
+        .frame(width: 420)
+        .frame(maxHeight: 640)
+        .background(.regularMaterial)
+        .onAppear {
+            control.load()
+        }
+    }
+}
+
+struct MonitorPanel: View {
     @ObservedObject var store: MonitorStore
 
     var body: some View {
@@ -30,9 +64,7 @@ struct MonitorView: View {
             }
             .padding(14)
         }
-        .frame(width: 390)
-        .frame(maxHeight: 620)
-        .background(.regularMaterial)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -403,7 +435,7 @@ private struct FooterView: View {
             .help("Quit")
         }
 
-        Text("Read-only · no telemetry")
+        Text("Read-only diagnostics · no telemetry · updates on request")
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity, alignment: .center)
