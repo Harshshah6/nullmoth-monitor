@@ -4,6 +4,8 @@
 
 - [ ] `swift test`
 - [ ] `make app` and launch the app
+- [ ] `make app-universal` (release-affecting changes) and `lipo -archs` shows
+      `x86_64 arm64`
 - [ ] Verified on Hackintosh hardware (optional; describe the GPU and driver)
 
 ## Checklist

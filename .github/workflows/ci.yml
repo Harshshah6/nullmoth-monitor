@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 concurrency:
@@ -35,12 +35,16 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Bundle app
-        run: make app
+      - name: Bundle universal app
+        run: make app-universal
 
       - name: Verify bundle
         run: |
           test -x "build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor"
+          archs="$(lipo -archs "build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor")"
+          echo "Architectures: $archs"
+          echo "$archs" | grep -q x86_64
+          echo "$archs" | grep -q arm64
           codesign --verify --deep --strict "build/NullMoth Monitor.app"
 
       - name: Archive app

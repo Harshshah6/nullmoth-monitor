@@ -26,7 +26,7 @@ If you prefer the web UI, create an empty repository and then:
 
 ```sh
 git remote add origin git@github.com:OWNER/nullmoth-monitor.git
-git push -u origin main
+git push -u origin HEAD
 ```
 
 ## 2. Configure the repository
@@ -51,32 +51,43 @@ Recommended settings:
 
 ## 3. Verify CI
 
-The `CI` workflow runs on every push to `main` and on pull requests:
+The `CI` workflow runs on every push to the default branch (`main` or `master`)
+and on pull requests:
 
 ```sh
 gh run list --workflow ci.yml
 gh run watch
 ```
 
-It builds in release mode, runs `swift test`, bundles the app, verifies the
-signature, and uploads `NullMothMonitor.zip` as an artifact.
+It builds both architecture slices in release mode, runs `swift test`, bundles a
+universal app, verifies `x86_64` and `arm64` are present, checks the signature,
+and uploads `NullMothMonitor.zip` as an artifact.
+
+> **Why universal matters.** GitHub's `macos-15` runners are Apple Silicon. A
+> plain `make app` there produces an arm64-only bundle, and Intel Hackintoshes
+> refuse it with “this application is not supported on this Mac.” This is exactly
+> what happened to `v0.1.0`; `v0.1.1` fixed it with `make app-universal`.
 
 ## 4. Cut a release
 
 ```sh
-git tag -a v0.1.0 -m "NullMoth Monitor 0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "NullMoth Monitor 0.1.1"
+git push origin v0.1.1
 ```
 
-The `Release` workflow builds the app, stamps the version from the tag, ad-hoc
-signs the bundle, packages a zip plus SHA-256, and creates a GitHub Release.
+The `Release` workflow builds the universal app, stamps the version from the tag,
+ad-hoc signs the bundle, packages the app zip, the universal `nullmoth-mon` CLI,
+and a combined SHA-256 file, then creates a GitHub Release.
 
 Verify:
 
 ```sh
-gh release view v0.1.0
-gh release download v0.1.0
-shasum -a 256 -c NullMothMonitor-v0.1.0.zip.sha256
+gh release view v0.1.1
+gh release download v0.1.1
+shasum -a 256 -c SHA256SUMS-v0.1.1.txt
+unzip -q NullMothMonitor-v0.1.1.zip -d /tmp/nullmoth-check
+lipo -archs "/tmp/nullmoth-check/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor"
+# expected: x86_64 arm64
 ```
 
 ## 5. Optional: notarization
@@ -104,6 +115,7 @@ prerequisite for publishing source.
 
 - [ ] CI badge renders on the README (it uses a relative Actions URL).
 - [ ] Release assets download and the checksum matches.
+- [ ] `lipo -archs` on the downloaded app reports `x86_64 arm64`.
 - [ ] `SECURITY.md` points to a real contact or advisory link.
 - [ ] README says "not affiliated with NullMoth".
 - [ ] LICENSE is MIT and no driver code is present.
@@ -114,9 +126,10 @@ prerequisite for publishing source.
 ## 7. If you need to undo a release
 
 ```sh
-gh release delete v0.1.0 --yes
-git push origin :refs/tags/v0.1.0
-git tag -d v0.1.0
+gh release delete v0.1.1 --yes
+git push origin :refs/tags/v0.1.1
+git tag -d v0.1.1
 ```
 
-Then fix the issue, retag, and push again.
+Then fix the issue, retag, and push again. Do not reuse a tag that already
+produced a broken asset; bump the patch version instead.

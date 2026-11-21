@@ -16,10 +16,10 @@ It is deliberately **not** an installer. The 1401 app already handles install,
 update, rollback, and log upload. This project focuses on live monitoring and
 diagnostics.
 
-- Repository: not published yet (see [PUBLISHING.md](PUBLISHING.md))
+- Repository: <https://github.com/Harshshah6/nullmoth-monitor>
 - License: MIT (the driver remains under its own PolyForm Noncommercial license)
 - Bundle identifier: `io.github.nullmothmonitor.app`
-- Current version: `0.1.0`
+- Current version: `0.1.1`
 
 ## 2. Current status
 
@@ -32,6 +32,8 @@ diagnostics.
 - 31 unit tests for parsers, boot-argument checks, and report output.
 - App icon generated from `Scripts/GenerateIcon.swift` and bundled as `.icns`.
 - CI and tag-release GitHub Actions workflows.
+- Universal release build (`make app-universal`) with `lipo` and CI checks for
+  both `x86_64` and `arm64` slices.
 - README, CONTRIBUTING, SECURITY, issue/PR templates, `.editorconfig`.
 - `docs/` with handoff notes, publishing steps, a changelog, and an index.
 - Git repository initialized with an initial history.
@@ -80,6 +82,9 @@ Also verified:
 - `--watch` prints one line per second.
 - `make app` produces a codesign-verifiable bundle at
   `build/NullMoth Monitor.app`.
+- `make app-universal` produces a universal bundle; `lipo -archs` reports
+  `x86_64 arm64`.
+- The universal app and universal CLI both run on the Intel test machine.
 - The app launches as an accessory and idles at roughly 0% CPU.
 
 ## 3. Environment and reproduction
@@ -98,7 +103,8 @@ Commands:
 ```sh
 swift build
 swift test
-make app
+make app              # host-architecture bundle
+make app-universal    # universal bundle for release
 open "build/NullMoth Monitor.app"
 ```
 
@@ -275,6 +281,13 @@ VRAM total:
   Open. Notarization needs a Developer ID and is a roadmap item.
 - macOS 27 drops Intel support. The target range is macOS 14–26.
 - The app is `LSUIElement`; it has no Dock icon by design.
+- **Release architecture.** GitHub's `macos-15` runner is arm64. A plain
+  `make app` there produces an arm64-only bundle that Intel Hackintoshes reject
+  with “this application is not supported on this Mac.” Always release with
+  `make app-universal`, which cross-compiles both slices and combines them with
+  `lipo`. CI and the release workflow verify `x86_64 arm64`.
+- `v0.1.0` shipped arm64-only and is broken on Intel. `v0.1.1` is the universal
+  fix.
 
 ## 8. Roadmap
 
@@ -282,8 +295,9 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
 
 ### P0 — publish
 
-- [ ] Push to GitHub and confirm CI is green.
-- [ ] Tag `v0.1.0` and verify the release workflow.
+- [x] Push to GitHub and confirm CI is green.
+- [x] Tag `v0.1.0` and verify the release workflow (arm64-only; superseded).
+- [ ] Tag `v0.1.1` and verify the universal release.
 - [ ] Add a screenshot or short GIF to the README.
 - [ ] Add repository topics and description.
 
@@ -325,9 +339,10 @@ Prioritized; pick the top unchecked item unless the user asks otherwise.
 See [PUBLISHING.md](PUBLISHING.md) for exact commands. Summary:
 
 1. Create `OWNER/nullmoth-monitor` on GitHub.
-2. Push `main`.
+2. Push the default branch (`master` in this repository).
 3. Confirm the CI workflow passes.
-4. Tag `v0.1.0`; the release workflow builds and attaches a zip + SHA-256.
+4. Tag `v0.1.1`; the release workflow builds a universal app, verifies both
+   architectures, and attaches the app zip, universal CLI, and SHA-256 file.
 5. Add a repository description and topics:
    `hackintosh`, `nvidia`, `macos`, `swift`, `menubar`, `gpu-monitor`.
 6. Enable private vulnerability reporting.
@@ -345,7 +360,9 @@ swift build -c release
 .build/release/nullmoth-mon
 .build/release/nullmoth-mon --json 2>/dev/null | python3 -m json.tool >/dev/null && echo JSON_OK
 .build/release/nullmoth-mon --report 2>/dev/null | head -40
-make app
+make app-universal
+lipo -archs "build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor"
+# expected: x86_64 arm64
 codesign --verify --deep --strict "build/NullMoth Monitor.app"
 open "build/NullMoth Monitor.app"
 ```
@@ -369,8 +386,13 @@ dbce470 Polish driver checks and menu bar sampling
 3b77d8e Add NullMoth Monitor menu bar app and CLI
 ```
 
-A local annotated tag `v0.1.0` points at the current `main` head. Push it only
+A local annotated tag `v0.1.1` should point at the release commit. Push it only
 when you are ready for the release workflow to run.
+
+Published tags:
+
+- `v0.1.0` — initial release; arm64-only, broken on Intel.
+- `v0.1.1` — universal build fix.
 
 ## 12. License boundaries
 

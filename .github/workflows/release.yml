@@ -26,8 +26,15 @@ jobs:
       - name: Show toolchain
         run: swift --version
 
-      - name: Build app bundle
-        run: make app
+      - name: Build universal app bundle
+        run: make app-universal
+
+      - name: Verify universal binary
+        run: |
+          archs="$(lipo -archs "build/NullMoth Monitor.app/Contents/MacOS/NullMothMonitor")"
+          echo "Architectures: $archs"
+          echo "$archs" | grep -q x86_64
+          echo "$archs" | grep -q arm64
 
       - name: Stamp version from tag
         run: |
@@ -42,8 +49,12 @@ jobs:
         run: |
           ditto -c -k --keepParent "build/NullMoth Monitor.app" \
             "NullMothMonitor-${GITHUB_REF_NAME}.zip"
-          shasum -a 256 "NullMothMonitor-${GITHUB_REF_NAME}.zip" \
-            > "NullMothMonitor-${GITHUB_REF_NAME}.zip.sha256"
+          cp ".build/universal/nullmoth-mon" "nullmoth-mon-${GITHUB_REF_NAME}"
+          chmod +x "nullmoth-mon-${GITHUB_REF_NAME}"
+          shasum -a 256 \
+            "NullMothMonitor-${GITHUB_REF_NAME}.zip" \
+            "nullmoth-mon-${GITHUB_REF_NAME}" \
+            > "SHA256SUMS-${GITHUB_REF_NAME}.txt"
 
       - name: Publish release
         env:
@@ -51,6 +62,7 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             "NullMothMonitor-${GITHUB_REF_NAME}.zip" \
-            "NullMothMonitor-${GITHUB_REF_NAME}.zip.sha256" \
+            "nullmoth-mon-${GITHUB_REF_NAME}" \
+            "SHA256SUMS-${GITHUB_REF_NAME}.txt" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes

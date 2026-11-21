@@ -18,3 +18,5 @@ xcuserdata/
 # Release artifacts
 NullMothMonitor-*.zip
 NullMothMonitor-*.zip.sha256
+nullmoth-mon-v*
+SHA256SUMS-*.txt

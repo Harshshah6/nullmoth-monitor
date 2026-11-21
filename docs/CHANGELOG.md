@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-21
+
+### Fixed
+
+- Release builds are now universal (`x86_64` + `arm64`). `v0.1.0` was built on
+  an Apple Silicon runner, so Intel Hackintoshes rejected it with “this
+  application is not supported on this Mac.”
+- CI and the release workflow verify both architecture slices before publishing.
+- Releases now also attach the universal `nullmoth-mon` CLI and a combined
+  `SHA256SUMS` file.
+
 ## [0.1.0] - 2026-11-21
 
 ### Added
@@ -26,5 +37,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Unit tests for parsers, boot-argument diagnostics, and report output.
 - CI and tag-release GitHub Actions workflows.
 
-[Unreleased]: https://github.com/OWNER/nullmoth-monitor/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/OWNER/nullmoth-monitor/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Harshshah6/nullmoth-monitor/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.1.1
+[0.1.0]: https://github.com/Harshshah6/nullmoth-monitor/releases/tag/v0.1.0

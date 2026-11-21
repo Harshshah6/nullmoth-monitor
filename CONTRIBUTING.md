@@ -23,7 +23,8 @@ git clone <your-fork>
 cd nullmoth-monitor
 swift build
 swift test
-make app
+make app              # host architecture
+make app-universal    # both architectures, for release checks
 open "build/NullMoth Monitor.app"
 ```
 
@@ -52,6 +53,8 @@ Xcode 26+ is recommended for release builds so Metal 4 detection is compiled in.
 - [ ] The change is read-only and adds no network access.
 - [ ] `swift test` passes.
 - [ ] `make app` succeeds and the app launches.
+- [ ] Release-affecting changes keep `make app-universal` working
+      (`lipo -archs` reports `x86_64 arm64`).
 - [ ] New parsers have tests.
 - [ ] Reports still contain no identifiers.
 - [ ] README or HANDOFF updated if behavior changed.

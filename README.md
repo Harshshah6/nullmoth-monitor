@@ -17,7 +17,8 @@ or NVRAM.
 > Not affiliated with NullMoth. This project contains no driver code, kexts,
 > firmware, or Apple binaries, and is licensed separately under MIT.
 
-**Status:** `0.1.0` — read-only, tested on macOS 26.7.3 with an NVIDIA RTX 3060.
+**Status:** `0.1.1` — read-only, universal (`x86_64` + `arm64`), tested on
+macOS 26.7.3 with an NVIDIA RTX 3060.
 
 ## Features
 
@@ -45,7 +46,8 @@ or NVRAM.
 ```sh
 make build          # debug/release build of the CLI and app
 make test           # unit tests
-make app            # bundle "build/NullMoth Monitor.app"
+make app            # bundle "build/NullMoth Monitor.app" for this Mac
+make app-universal  # bundle for both Intel and Apple Silicon
 make icon           # regenerate the app icon from Scripts/GenerateIcon.swift
 open "build/NullMoth Monitor.app"
 ```

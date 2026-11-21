@@ -36,7 +36,8 @@ update, rollback, and log upload.
 ```sh
 swift build                 # debug build
 swift test                  # 31 tests, no driver required
-make app                    # release .app in build/
+make app                    # release .app for this Mac's architecture
+make app-universal          # release .app for x86_64 + arm64 (use for releases)
 make run                    # build + open
 .build/debug/nullmoth-mon   # CLI summary
 .build/debug/nullmoth-mon --json
@@ -74,7 +75,7 @@ probes; the app samples on a background queue.
 4. Render it in `MonitorView.swift` only when data exists.
 5. Include it in `Report.swift` if it helps bug reports.
 6. Add a pure parser test if you parse text.
-7. Run `swift test` and `make app`.
+7. Run `swift test` and `make app-universal`.
 
 ## Conventions
 
@@ -95,6 +96,9 @@ probes; the app samples on a background queue.
 - Boot arguments vary; only require `nvfb=1`, `nvaccel=1`, and one AMFI bypass.
 - The app is `LSUIElement` (menu bar only) and ad-hoc signed.
 - macOS 27 drops Intel; target macOS 14–26.
+- **Never release with plain `make app`.** GitHub's `macos-15` runner is arm64,
+  so that produces an arm64-only bundle that Intel Macs refuse to open. Release
+  with `make app-universal` and check `lipo -archs` reports `x86_64 arm64`.
 
 ## Do not
 

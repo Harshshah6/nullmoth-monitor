@@ -3,7 +3,7 @@
 ## Supported versions
 
 Only the latest release is supported. The project is pre-1.0, so fixes land on
-`main` and in the next tag.
+the default branch and in the next tag.
 
 ## Reporting a vulnerability
 
